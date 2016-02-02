@@ -1,5 +1,5 @@
 ##
-# This module requires Metasploit: http//metasploit.com/download
+# This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
@@ -41,10 +41,6 @@ class Metasploit3 < Msf::Auxiliary
   def mysql_query_no_handle(sql)
     res = @mysql_handle.query(sql)
     res
-  end
-
-  def peer
-    "#{rhost}:#{rport}"
   end
 
   def run_host(ip)

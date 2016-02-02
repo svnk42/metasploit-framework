@@ -1,5 +1,5 @@
 ##
-# This module requires Metasploit: http//metasploit.com/download
+# This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
@@ -25,8 +25,8 @@ class Metasploit3 < Msf::Auxiliary
       'License'      => MSF_LICENSE,
       'References'   =>
         [
-          [ 'URL', 'https://github.com/claudijd/BNAT-Suite'],
-          [ 'URL', 'http://www.slideshare.net/claudijd/dc-skytalk-bnat-hijacking-repairing-broken-communication-channels'],
+          [ 'URL', 'https://github.com/claudijd/bnat'],
+          [ 'URL', 'http://www.slideshare.net/claudijd/dc-skytalk-bnat-hijacking-repairing-broken-communication-channels']
         ]
     )
 
@@ -77,6 +77,10 @@ class Metasploit3 < Msf::Auxiliary
 
     ports = Rex::Socket.portspec_crack(datastore['PORTS'])
 
+    if ports.empty?
+      raise Msf::OptionValidateError.new(['PORTS'])
+    end
+
     ports.each_with_index do |port,i|
       p.tcp_dst = port
       p.tcp_src = rand(64511)+1024
@@ -85,7 +89,7 @@ class Metasploit3 < Msf::Auxiliary
 
       ackbpf = "tcp [8:4] == 0x#{(p.tcp_seq + 1).to_s(16)}"
       pcap.setfilter("tcp and tcp[13] == 18 and not host #{ip} and src port #{p.tcp_dst} and dst port #{p.tcp_src} and #{ackbpf}")
-      capture_sendto(p, ip)
+      break unless capture_sendto(p, ip)
       reply = probe_reply(pcap, to)
       next if reply.nil?
 
